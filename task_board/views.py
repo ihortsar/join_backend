@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.forms import ValidationError
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
@@ -6,8 +6,11 @@ from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from task_board.serializers import TaskSerializer
+
+from task_board.serializers import TaskSerializer, UserSerializer
 from .models import Task
+from django.contrib.auth.models import User
+
 
 
 class LoginView(ObtainAuthToken):
@@ -31,15 +34,19 @@ class TaskView(APIView):
         return Response(serialized.data)
 
     def post(self, request):
-        serializer = TaskSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.validated_data["author"] = request.user
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+   
+     serializer = TaskSerializer(data=request.data)
+     try:
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+     except ValidationError as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+     
 
     def put(self, request, *args, **kwargs):
-        task = Task.objects.get(pk=kwargs['pk']) 
+        task = Task.objects.get(pk=kwargs["pk"])
         task.save()
         serializer = TaskSerializer(task, data=request.data)
         if serializer.is_valid():
@@ -47,8 +54,27 @@ class TaskView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-    def delete(self, request, format=None,**kwargs):
-        task = Task.objects.get(pk=kwargs['pk'])
+    def delete(self, request, format=None, **kwargs):
+        task = Task.objects.get(pk=kwargs["pk"])
         task.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT) 
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class UserView(APIView):
+    def post(self, request):
+        username = request.data.get("username")
+        email = request.data.get("email")
+        password = request.data.get("password")
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+        )
+        return Response({"message": "User created successfully.", "user_id": user.id})
+
+
+class AllUsers(APIView):
+    def get(self, request, format=None):
+        users = User.objects.all()
+        serialized_users = UserSerializer(users, many=True)
+        return Response(serialized_users.data)
