@@ -1,4 +1,5 @@
 from django.forms import ValidationError
+from django.http import JsonResponse
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
@@ -7,8 +8,8 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
-from task_board.serializers import TaskSerializer, UserSerializer
-from .models import Task
+from task_board.serializers import CategorySerializer, TaskSerializer, UserSerializer
+from .models import Category, Task
 from django.contrib.auth.models import User
 
 
@@ -78,3 +79,19 @@ class AllUsers(APIView):
         users = User.objects.all()
         serialized_users = UserSerializer(users, many=True)
         return Response(serialized_users.data)
+
+
+class CategoryView(APIView):
+    def post(self, request):
+        serializer = CategorySerializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            category = serializer.save()
+            return JsonResponse({'pk': category.pk})
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    def get(self, request, format=None):
+        categories = Category.objects.all()
+        serialized_categories = CategorySerializer(categories, many=True)
+        return Response(serialized_categories.data)
