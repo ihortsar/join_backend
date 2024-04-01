@@ -12,14 +12,15 @@ class Task(models.Model):
 
     title = models.CharField(max_length=30)
     description = models.CharField(max_length=500)
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default=None)
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, null=True)
     due_date = models.DateField(default=datetime.date.today)
     category = models.ForeignKey("Category", on_delete=models.CASCADE, null=True)
     assigned_users = models.JSONField(default=list)
     subtasks = models.JSONField(default=list)
-    state = models.CharField(max_length=20, default=None)
+    state = models.CharField(max_length=20, null=True)
 
 
 class Category(models.Model):
     name = models.CharField(max_length=30)
     color = models.CharField(max_length=30)
+ 
