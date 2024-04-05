@@ -67,14 +67,18 @@ class UserView(APIView):
         last_name = request.data.get("lastName")
         email = request.data.get("email")
         password = request.data.get("password")
-        user = User.objects.create_user(
-            username=username,
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            password=password,
-        )
-        return Response({"message": "User created successfully.", "user_id": user.id})
+
+        try:
+            User.objects.create_user(
+                username=username,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                password=password,
+            )
+            return Response({"message": "User successfully created"}, status=201)
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
 
 
 class AllUsers(APIView):
@@ -110,10 +114,12 @@ class CategoryView(APIView):
         categories = Category.objects.all()
         serialized_categories = CategorySerializer(categories, many=True)
         return Response(serialized_categories.data)
-    
+
+
 class Logout(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+
     def post(self, request, format=None):
         request.user.auth_token.delete()
         return Response(status=status.HTTP_200_OK)
